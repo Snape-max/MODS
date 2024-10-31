@@ -6,6 +6,7 @@ from PySide6.QtCore import QThread
 from PySide6.QtGui import QIcon, QImage, QPixmap, Qt
 from PySide6.QtWidgets import QGridLayout, QWidget, QLabel, QPushButton, QComboBox, QSpacerItem, QSizePolicy
 from PySide6.QtCore import Signal, Slot
+from numpy import ndarray
 from interface import *
 
 class WorkerThread(QThread):
@@ -17,10 +18,10 @@ class WorkerThread(QThread):
         self.video_path = video_path
         self.task = task
 
-    def log_callback(self, string):
+    def log_callback(self, string:str) -> None:
         self.changeInfo.emit(string)
 
-    def show_callback(self, image):
+    def show_callback(self, image:ndarray) -> None:
         showframe = cv2.resize(image, (16 * 60, 9 * 60))
         h, w, ch = showframe.shape
         bytes_per_line = ch * w

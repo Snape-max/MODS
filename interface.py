@@ -1,17 +1,18 @@
 from time import sleep
-
-from streamlit.delta_generator import DeltaGenerator
 import os
 import numpy as np
 import torch
 from PIL import Image
+from numpy import ndarray
+
 from utils import set_devices, add_mask
 from sam2.build_sam import build_sam2_video_predictor
 import cv2
-
+from typing import Callable
+from numpy import ndarray
 
 class Sam2Interface:
-    def __init__(self, show_callback, log_callback, video_dir:str):
+    def __init__(self, show_callback:Callable[[ndarray],None], log_callback:Callable[[str],None], video_dir:str):
         device = set_devices()
         sam2_checkpoint = "../checkpoints/sam2.1_hiera_large.pt"
         model_cfg = "configs/sam2.1/sam2.1_hiera_l.yaml"
@@ -22,7 +23,7 @@ class Sam2Interface:
         self.video_dir = video_dir
 
 
-    def handle(self):
+    def handle(self) -> None:
         self.log_callback("Loading video...")
         frame_names = [
             p for p in os.listdir(self.video_dir)
@@ -64,7 +65,7 @@ class Sam2Interface:
 
 
 class Cv2Interface:
-    def __init__(self, show_callback, log_callback, video_dir:str):
+    def __init__(self, show_callback:Callable[[ndarray],None], log_callback:Callable[[str],None], video_dir:str):
         self.show_callback = show_callback
         self.log_callback = log_callback
         self.video_dir = video_dir
