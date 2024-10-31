@@ -1,4 +1,5 @@
 image/*
 output/*
-video/*
+video/*.mp4
+video/drones/
 __pycache__
