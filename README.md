@@ -2,7 +2,7 @@
   <br>
   <img src="./asset/logo.png" alt="MODS" width="150">
   <br>
-  <sub><sup><b>Moving object detection system</b></sup></sub>
+  <sub><sup><b>Moving Object Detection System</b></sup></sub>
 </h1>
 
 
