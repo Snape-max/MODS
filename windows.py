@@ -1,9 +1,8 @@
 import os
 import sys
-import cv2
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtWidgets
 from PySide6.QtCore import QThread, Signal, Slot
-from PySide6.QtGui import QIcon, QImage, QPixmap, Qt, QFont
+from PySide6.QtGui import QImage, QPixmap, Qt, QFont, QIcon, QFontDatabase
 from PySide6.QtWidgets import QGridLayout, QWidget, QLabel, QPushButton, QComboBox, QSpacerItem
 from numpy import ndarray
 from interface import *
@@ -77,6 +76,8 @@ class MoveWindow(QtWidgets.QMainWindow):
         self.set_ui()
 
     def set_ui(self):
+        icon = QIcon("asset/logo.png")
+        self.setWindowIcon(icon)
         self.task_box.addItems(["背景不变", "背景变化", "动平台"])
         videos = os.listdir(self.video_dir)
         self.video_box.addItems(videos)
@@ -94,11 +95,8 @@ class MoveWindow(QtWidgets.QMainWindow):
         spacer = QSpacerItem(20, 20)
 
         # style
-        font = QFont("Arial", 10, QFont.Bold)
         task_label.setMaximumHeight(15)
         video_label.setMaximumHeight(15)
-        task_label.setFont(font)
-        video_label.setFont(font)
         self.video_box.setStyleSheet("QComboBox  { min-width: 100px; min-height: 30px; }")
         self.task_box.setStyleSheet("QComboBox { min-width: 100px; min-height: 30px; }")
         self.start_button.setStyleSheet("QPushButton { max-width: 120px; min-height: 30px; }")
@@ -150,6 +148,10 @@ class MoveWindow(QtWidgets.QMainWindow):
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
+    font_id = QFontDatabase.addApplicationFont("asset/font.ttf")
+    font_families = QFontDatabase.applicationFontFamilies(font_id)
+    font = QFont(font_families[0], 10)
+    app.setFont(font)
     window = MoveWindow()
     window.show()
     sys.exit(app.exec())
