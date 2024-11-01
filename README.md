@@ -16,6 +16,10 @@
     <a href="https://github.com/Snape-max/MODS" target="_blank" style="margin-right: 20px; font-style: normal; text-decoration: none;">
         <img src="https://img.shields.io/github/languages/code-size/Snape-max/MODS" alt="Code-size" />
     </a>
+    <a href="https://github.com/Snape-max/MODS">
+        <img src="https://img.shields.io/github/v/release/Snape-max/MODS"
+            alt="Latest Release">
+    </a>
 </p>
 
 ## Requirements
