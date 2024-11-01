@@ -28,14 +28,15 @@ def set_devices():
 def add_mask(image: np.ndarray, mask: np.ndarray, color: tuple[int, int, int]) -> np.ndarray:
     mask_image = np.zeros_like(image)
     # 遮罩
-    mask_image[mask == 1] = color
+    mask_image[mask==1] = color
     # 提取原图遮罩区域
-    image_mask_area = image[mask == 1]
+    image_mask_area = image[mask==1]
     # 添加遮罩
-    masked_image = cv2.addWeighted(image_mask_area, 0.7, mask_image[mask == 1], 0.3, 0,
-                                   dtype=cv2.CV_32F).astype(np.uint8)
-    # 替换区域
-    image[mask == 1] = masked_image
+    if len(image_mask_area) != 0:
+        masked_image = cv2.addWeighted(image_mask_area, 0.6, mask_image[mask == 1], 0.4, 0,
+                                       dtype=cv2.CV_32F).astype(np.uint8)
+        # 替换区域
+        image[mask == 1] = masked_image
     return image
 
 
