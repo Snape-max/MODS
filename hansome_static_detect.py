@@ -75,10 +75,11 @@ def fixedbackground_detect(show_callback:Callable[[ndarray],None],
             rect = cv2.minAreaRect(contour)
             box = cv2.boxPoints(rect)
             box = np.intp(box)
-            cv2.drawContours(frame_original, [box], 0, (0, 0, 255), 2)
+            cv2.drawContours(frame_original, [box], 0, (99, 46, 255), 2)
+
 
         thresh[thresh == 255] = 1
-        mask_image = add_mask(frame_original[:, :, ::-1], thresh.astype(int), (61, 132, 168))
+        mask_image = add_mask(frame_original[:, :, ::-1], thresh.astype(int), (16, 221, 194))
         show_callback(mask_image)
     log_callback("processed")
 

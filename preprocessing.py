@@ -4,12 +4,44 @@ import cv2
 from sklearn.cluster import KMeans
 
 def SURF(img):
+    """
+    使用SIFT（尺度不变特征变换）检测图像中的关键点并计算描述符。
+
+    参数:
+    img: 输入的图像，灰度图像
+
+    返回值:
+    kp: 关键点列表
+    des: 描述符数组，与关键点列表一一对应，每个关键点都有一个描述符，用于在不同图像间匹配关键点。
+    """
+    # 创建SIFT对象，用于后续的关键点检测和描述符计算
     surf = cv2.SIFT_create()
+
+    # 使用SIFT对象检测图像中的关键点并计算描述符
+    # img为输入图像，None表示不使用掩码，即处理整幅图像
     kp, des = surf.detectAndCompute(img, None)
+
+    # 返回检测到的关键点和计算出的描述符
     return kp, des
 
 
+
 def ByFlann(img1, img2, kp1, kp2, des1, des2, flag="ORB"):
+    """
+    使用FLANN匹配算法进行特征点匹配。
+
+    参数:
+    img1: 第一张图像。
+    img2: 第二张图像。
+    kp1: 第一张图像的特征点。
+    kp2: 第二张图像的特征点。
+    des1: 第一张图像的特征描述符。
+    des2: 第二张图像的特征描述符。
+    flag: 指定使用的特征提取方法，默认为"ORB"。
+
+    返回:
+    matches: 特征点匹配结果。
+    """
     if (flag == "SIFT" or flag == "sift"):
         # SIFT方法
         FLANN_INDEX_KDTREE = 1
@@ -30,22 +62,38 @@ def ByFlann(img1, img2, kp1, kp2, des1, des2, flag="ORB"):
     return matches
 
 def RANSAC(img1, img2, kp1, kp2, matches):
+    """
+    使用RANSAC算法找出移动的物体。
+
+    参数:
+    img1: 第一张图像。
+    img2: 第二张图像。
+    kp1: 第一张图像的关键点。
+    kp2: 第二张图像的关键点。
+    matches: 两幅图像间关键点的匹配。
+
+    返回:
+    move_rect: 移动物体的矩形区域列表。
+    """
     # 初始化矩形列表
     move_rect = []
 
+    # 最小匹配点数量阈值
     MIN_MATCH_COUNT = 10
-    # store all the good matches as per Lowe's ratio test.
+
+    # 根据Lowe的比例测试存储所有好的匹配
     matchType = type(matches[0])
     good = []
     if isinstance(matches[0], cv2.DMatch):
-        # 搜索使用的是match
+        # 如果匹配类型是cv2.DMatch，则直接使用matches
         good = matches
     else:
-        # 搜索使用的是knnMatch
+        # 否则，使用knnMatch的结果，并应用比例测试
         for m, n in matches:
             if m.distance < 0.7 * n.distance:
                 good.append(m)
 
+    # 如果有足够的匹配点，则尝试找到单应性矩阵
     if len(good) > MIN_MATCH_COUNT:
         src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
         dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
@@ -54,6 +102,7 @@ def RANSAC(img1, img2, kp1, kp2, matches):
         M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
         matchesMask = mask.ravel().tolist()
     else:
+        # 如果没有足够的匹配点，打印消息并设置matchesMask为None
         print("Not enough matches are found - %d/%d" % (len(good), MIN_MATCH_COUNT))
         matchesMask = None
 
@@ -71,7 +120,6 @@ def RANSAC(img1, img2, kp1, kp2, matches):
         good_new = nextPts[status == 1]
         good_old = pts1[status == 1]
 
-
         # 计算光流向量
         flow_vectors = good_new - good_old
 
@@ -86,16 +134,15 @@ def RANSAC(img1, img2, kp1, kp2, matches):
         # 统计每个类别的点数
         label_counts = np.bincount(labels)
 
-
         # 找到点数最多的类别，认为它是背景
         background_label = np.argmax(label_counts)
 
         # 其他类别认为是运动物体
         moving_object_labels = [i for i in range(n_clusters) if i != background_label]
 
+        # 图像尺寸
         h, w, c = img1.shape
         move_obj_mask = np.zeros((h, w), dtype=np.uint8)
-
 
         # 根据标签绘制运动物体
         for i, label in enumerate(labels):
@@ -104,12 +151,14 @@ def RANSAC(img1, img2, kp1, kp2, matches):
                 if round(y) < h and round(x) < w:
                     move_obj_mask[round(y)][round(x)] = 255
 
+        # 形态学操作，增强运动物体的掩膜
         kernel = np.ones((4, 4), np.uint8)
         move_obj_mask = cv2.dilate(move_obj_mask, kernel, iterations=7)
         move_obj_mask = cv2.erode(move_obj_mask, kernel, iterations=10)
         kernel = np.ones((5, 5), np.uint8)
         move_obj_mask = cv2.dilate(move_obj_mask, kernel, iterations=9)
 
+        # 找到运动物体的轮廓
         contours, _ = cv2.findContours(move_obj_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         # 过滤掉小的轮廓
@@ -119,9 +168,8 @@ def RANSAC(img1, img2, kp1, kp2, matches):
             if 10000>cv2.contourArea(contour) > min_contour_area:
                 cv2.drawContours(filtered_mask, [contour], -1, 255, thickness=cv2.FILLED)
 
+        # 再次找到过滤后的轮廓
         contours, _ = cv2.findContours(filtered_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-
 
         # 遍历所有轮廓
         for contour in contours:
@@ -132,12 +180,27 @@ def RANSAC(img1, img2, kp1, kp2, matches):
 
     return move_rect
 
+
 def preprocessing(img1, img2):
+    """
+    利用前两帧初步确定运动物体大致范围
+
+    参数:
+    img1: 第一帧
+    img2: 第二帧
+
+    返回:
+    move_rect: 运动物体分为列表
+    """
+    # 使用SURF算法处理第一张图片，获取关键点和描述符
     kp1, des1 = SURF(img1)
+    # 使用SURF算法处理第二张图片，获取关键点和描述符
     kp2, des2 = SURF(img2)
+    # 通过FLANN匹配算法，根据关键点和描述符在两张图片间找到匹配点
     matches = ByFlann(img1, img2, kp1, kp2, des1, des2, "SIFT")
     move_rect = RANSAC(img1, img2, kp1, kp2, matches)
     return move_rect
+
 
 
 

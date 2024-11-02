@@ -1,11 +1,11 @@
 import numpy as np
 import torch
 import cv2
-import matplotlib.pyplot as plt
-import streamlit as st
 
 def set_devices():
-    # select the device for computation
+    """
+    select the device for computation
+    """
     if torch.cuda.is_available():
         device = torch.device("cuda")
     elif torch.backends.mps.is_available():
@@ -26,6 +26,17 @@ def set_devices():
 
 
 def add_mask(image: np.ndarray, mask: np.ndarray, color: tuple[int, int, int]) -> np.ndarray:
+    """
+    在图像上添加遮罩。
+
+    参数:
+    image: np.ndarray - 输入的图像数组。
+    mask: np.ndarray - 遮罩数组，用于指定遮罩区域。
+    color: tuple[int, int, int] - 遮罩的颜色，以RGB格式表示。
+
+    返回:
+    np.ndarray - 添加遮罩后的图像数组。
+    """
     mask_image = np.zeros_like(image)
     # 遮罩
     mask_image[mask==1] = color
@@ -40,7 +51,15 @@ def add_mask(image: np.ndarray, mask: np.ndarray, color: tuple[int, int, int]) -
     return image
 
 
-def calculate_background(background_video_path: str):
+def calculate_background(background_video_path: str) -> np.ndarray:
+    """
+    计算视频的平均背景帧。
+    参数:
+    background_video_path: str - 视频文件的路径。
+
+    返回:
+    np.ndarray - 计算得到的灰度平均背景帧。
+    """
     cap = cv2.VideoCapture(background_video_path)
     background_frames = []
     while True:
