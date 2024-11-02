@@ -1,5 +1,9 @@
 image/*
 output/*
 video/*.mp4
-video/drones/
+video/move/drones/
+video/fixed/*.mp4
+video/fluid/*.mp4
+video/move/*.mp4
 __pycache__
+.idea

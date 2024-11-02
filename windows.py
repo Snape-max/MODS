@@ -5,6 +5,7 @@ from PySide6.QtCore import QThread, Signal, Slot
 from PySide6.QtGui import QImage, QPixmap, Qt, QFont, QIcon, QFontDatabase
 from PySide6.QtWidgets import QGridLayout, QWidget, QLabel, QPushButton, QComboBox, QSpacerItem
 from numpy import ndarray
+
 from interface import *
 
 class WorkerThread(QThread):
@@ -63,8 +64,13 @@ class MoveWindow(QtWidgets.QMainWindow):
 
         self.task = 0
         self.video_path = 0
-        self.video_dir = "./video"
+        self.task_dir = {
+            "背景不变": "./video/fixed",
+            "背景变化": "./video/fluid",
+            "动平台": "./video/move"
+        }
         self.task_box = QComboBox()
+        self.task_box.currentIndexChanged.connect(self.set_video_box)
         self.video_box = QComboBox()
         self.start_button = QPushButton("开始运动目标检测")
         self.stop_button = QPushButton("终止任务")
@@ -79,8 +85,8 @@ class MoveWindow(QtWidgets.QMainWindow):
         icon = QIcon("asset/logo.png")
         self.setWindowIcon(icon)
         self.task_box.addItems(["背景不变", "背景变化", "动平台"])
-        videos = os.listdir(self.video_dir)
-        self.video_box.addItems(videos)
+        # 当前task
+        self.set_video_box()
         central_widget = QWidget(self)
         grid = QGridLayout()
         central_widget.setLayout(grid)
@@ -118,7 +124,7 @@ class MoveWindow(QtWidgets.QMainWindow):
             self.stop_button.setEnabled(True)
             task = self.task_box.currentText()
             video = self.video_box.currentText()
-            video_path = os.path.join(self.video_dir, video)
+            video_path = os.path.join(self.task_dir[task], video)
             self.worker = WorkerThread(video_path, task)
             self.worker.changePixmap.connect(self.set_frame_label_pixmap)
             self.worker.changeInfo.connect(self.set_info)
@@ -145,6 +151,13 @@ class MoveWindow(QtWidgets.QMainWindow):
         self.start_button.setEnabled(True)
         self.stop_button.setEnabled(False)
         self.task_finish = True
+
+    def set_video_box(self):
+        task = self.task_box.currentText()
+        self.video_box.clear()
+        videos = os.listdir(self.task_dir[task])
+        videos.remove(".ignore")
+        self.video_box.addItems(videos)
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

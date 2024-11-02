@@ -40,5 +40,14 @@ def add_mask(image: np.ndarray, mask: np.ndarray, color: tuple[int, int, int]) -
     return image
 
 
-
+def calculate_background(background_video_path: str):
+    cap = cv2.VideoCapture(background_video_path)
+    background_frames = []
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        background_frames.append(frame_gray)
+    return np.mean(background_frames, axis=0).astype(np.uint8)
 
