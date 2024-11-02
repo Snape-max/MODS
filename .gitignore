@@ -6,4 +6,4 @@ video/fixed/*.mp4
 video/fluid/*.mp4
 video/move/*.mp4
 __pycache__
-.idea
+.idea/
