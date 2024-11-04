@@ -107,34 +107,40 @@ def fluidbackground_detect(show_callback:Callable[[ndarray],None],
     返回:
         None
     """
-    cap = cv2.VideoCapture(video_path)  # 替换为你的录像文件路径
+    cap = cv2.VideoCapture(video_path)
 
-    # 创建背景减除对象
+
+    # 初始化当前帧的前帧
+    lastFrame = None
+
+    # kernel of erode and dilate
+
     backSub = cv2.createBackgroundSubtractorMOG2(240, 16, True)
+    kernel_ero = np.ones((3, 3), np.uint8)
+    kernel_dil = np.ones((3, 3), np.uint8)
 
     while True:
         # 逐帧捕捉
         ret, frame = cap.read()
         if not ret:
+            print(2)
             break
 
         # 应用背景减除
         fg_mask = backSub.apply(frame)
         fg_mask = cv2.threshold(fg_mask, 128, 255, cv2.THRESH_BINARY)[1]
         # 进行形态学操作以去除噪声
-        kernel_ero = np.ones((3, 3), np.uint8)
-        fg_mask = cv2.erode(fg_mask, kernel_ero, iterations=2)
 
-        kernel_dil = np.ones((3, 3), np.uint8)
+        fg_mask = cv2.erode(fg_mask, kernel_ero, iterations=2)
         fg_mask = cv2.dilate(fg_mask, kernel_dil, iterations=3)
 
         fg_mask = cv2.erode(fg_mask, kernel_ero, iterations=1)
-        fg_mask = cv2.dilate(fg_mask, kernel_dil, iterations=2)
+        fg_mask = cv2.dilate(fg_mask, kernel_dil, iterations=3)
         # fg_mask = cv2.morphologyEx(fg_mask, cv2.MORPH_CLOSE, kernel)
         frame_detect = frame.copy()
 
         num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(fg_mask, connectivity=8)
-        threshold_distance = 70
+        threshold_distance = 80
         for i in range(1, num_labels):
             for j in range(i + 1, num_labels):
                 # 计算两个组件中心点之间的距离
@@ -161,9 +167,17 @@ def fluidbackground_detect(show_callback:Callable[[ndarray],None],
             cv2.drawContours(frame_detect, [contour], -1, (0, 255, 0), 2)
 
         for contour in contours:
-            if cv2.contourArea(contour) > 200:  # 过滤小轮廓
+            if cv2.contourArea(contour) > 100:  # 过滤小轮廓
                 (x, y, w, h) = cv2.boundingRect(contour)
 
                 cv2.rectangle(frame_detect, (x, y), (x + w, y + h), (0, 0, 255), 2)  # 绘制边界框
+        frame_detect = cv2.resize(frame_detect, (0, 0), fx=0.5, fy=0.5)
+        fg_mask = cv2.resize(fg_mask, (0, 0), fx=0.5, fy=0.5)
+
+        if cv2.waitKey(1) & 0xff == 27:
+            break
+
+
         show_callback(frame_detect[:, :, ::-1])
+    cap.release()
     log_callback("processed")
