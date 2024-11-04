@@ -76,7 +76,7 @@ class Sam2Interface:
                 fps = round(1 / (e_time - s_time), 2)
                 # 绘制在画面上
                 cv2.putText(mask_image, str(fps), (10, 30),
-                            cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 0, 0))
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
             s_time = time.time()
             self.show_callback(mask_image)
 

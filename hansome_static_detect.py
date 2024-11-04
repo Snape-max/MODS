@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import time
 from typing import Callable
 from numpy import ndarray
 from utils import add_mask, calculate_background
@@ -25,8 +26,9 @@ def fixedbackground_detect(show_callback:Callable[[ndarray],None],
     log_callback("Background calculating")
     background = calculate_background(background_path)
     cap = cv2.VideoCapture(video_path)
-
+    s_time = None
     while cap.isOpened():
+
         ret, frame_original = cap.read()
         if not ret:
             break
@@ -79,7 +81,14 @@ def fixedbackground_detect(show_callback:Callable[[ndarray],None],
 
 
         thresh[thresh == 255] = 1
-        mask_image = add_mask(frame_original[:, :, ::-1], thresh.astype(int), (16, 221, 194))
+        mask_image = add_mask(frame_original[:, :, ::-1], thresh.astype(int), (16, 221, 194)).astype(np.uint8)
+        e_time = time.time()
+        if s_time is not None:
+            fps = round(1 / (e_time - s_time), 2)
+            cv2.putText(mask_image, str(fps), (10, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+
+        s_time = time.time()
         show_callback(mask_image)
     log_callback("processed")
 
