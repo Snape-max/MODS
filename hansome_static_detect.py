@@ -90,6 +90,7 @@ def fixedbackground_detect(show_callback:Callable[[ndarray],None],
 
         s_time = time.time()
         show_callback(mask_image)
+    cap.release()
     log_callback("processed")
 
 
@@ -118,13 +119,24 @@ def fluidbackground_detect(show_callback:Callable[[ndarray],None],
     backSub = cv2.createBackgroundSubtractorMOG2(240, 16, True)
     kernel_ero = np.ones((3, 3), np.uint8)
     kernel_dil = np.ones((3, 3), np.uint8)
-
+    s_time = None
     while True:
         # 逐帧捕捉
         ret, frame = cap.read()
+        
         if not ret:
-            print(2)
             break
+        original_frame = frame.copy()
+        # 直方图均衡化
+        b, g, r = cv2.split(frame)
+
+        # 分别对每个通道进行直方图均衡化
+        b_eq = cv2.equalizeHist(b)
+        g_eq = cv2.equalizeHist(g)
+        r_eq = cv2.equalizeHist(r)
+
+        # 合并通道
+        frame = cv2.merge((b_eq, g_eq, r_eq))
 
         # 应用背景减除
         fg_mask = backSub.apply(frame)
@@ -140,7 +152,7 @@ def fluidbackground_detect(show_callback:Callable[[ndarray],None],
         frame_detect = frame.copy()
 
         num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(fg_mask, connectivity=8)
-        threshold_distance = 80
+        threshold_distance = 70
         for i in range(1, num_labels):
             for j in range(i + 1, num_labels):
                 # 计算两个组件中心点之间的距离
@@ -163,21 +175,26 @@ def fluidbackground_detect(show_callback:Callable[[ndarray],None],
         # 查找轮廓
         contours, _ = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        for contour in contours:
-            cv2.drawContours(frame_detect, [contour], -1, (0, 255, 0), 2)
+        fg_mask[fg_mask == 255] = 1
+        mask_image = add_mask(original_frame[:, :, ::-1], fg_mask.astype(int), (16, 221, 194)).astype(np.uint8)
 
         for contour in contours:
-            if cv2.contourArea(contour) > 100:  # 过滤小轮廓
+            if cv2.contourArea(contour) > 120:  # 过滤小轮廓
                 (x, y, w, h) = cv2.boundingRect(contour)
 
-                cv2.rectangle(frame_detect, (x, y), (x + w, y + h), (0, 0, 255), 2)  # 绘制边界框
-        frame_detect = cv2.resize(frame_detect, (0, 0), fx=0.5, fy=0.5)
-        fg_mask = cv2.resize(fg_mask, (0, 0), fx=0.5, fy=0.5)
-
-        if cv2.waitKey(1) & 0xff == 27:
-            break
+                cv2.rectangle(mask_image, (x, y), (x + w, y + h), (255, 0, 0), 2)  # 绘制边界框
 
 
-        show_callback(frame_detect[:, :, ::-1])
+
+        e_time = time.time()
+        if s_time is not None:
+            fps = round(1 / (e_time - s_time), 2)
+            cv2.putText(mask_image, str(fps), (10, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+            # print(fps)
+
+        s_time = time.time()
+        show_callback(mask_image)
+        
     cap.release()
     log_callback("processed")

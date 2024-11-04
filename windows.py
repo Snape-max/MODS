@@ -30,18 +30,6 @@ class WorkerThread(QThread):
         self.changePixmap.emit(qImg)
 
     def run(self) -> None:
-        # try:
-        #     if self.task == "动平台":
-        #         sam_test = Sam2Interface(self.show_callback, self.log_callback, self.video_path)
-        #         sam_test.handle()
-        #     elif self.task == "背景不变" or self.task == "背景变化":
-        #         cv2_test = Cv2Interface(self.show_callback, self.log_callback, self.video_path, self.task)
-        #         cv2_test.handle()
-        #     else:
-        #         self.log_callback("Task Error")
-        #     self.finished.emit(True)
-        # except:
-        #     self.finished.emit(True)
         if self.task == "动平台":
             sam_test = Sam2Interface(self.show_callback, self.log_callback, self.video_path)
             sam_test.handle()
@@ -157,8 +145,16 @@ class MoveWindow(QtWidgets.QMainWindow):
         task = self.task_box.currentText()
         self.video_box.clear()
         videos = os.listdir(self.task_dir[task])
-        videos.remove(".ignore")
+        # 找到以.mp4结尾的文件或文件夹
+        videos = [video for video in videos 
+                  if video.endswith(".mp4") or os.path.isdir(os.path.join(self.task_dir[task], video))]
         self.video_box.addItems(videos)
+
+    def closeEvent(self, event):
+        if self.worker is not None and self.worker.isRunning():
+            self.worker.stop()
+            event.accept()
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

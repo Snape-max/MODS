@@ -2,7 +2,11 @@ import os
 import numpy as np
 import cv2
 from sklearn.cluster import KMeans
-os.environ["OMP_NUM_THREADS"] = "5"
+import sys
+sys.path.append("..")
+
+from utils import add_mask
+os.environ["OMP_NUM_THREADS"] = "11"
 
 def SURF(img):
     """
@@ -182,38 +186,31 @@ def RANSAC(img1, img2, kp1, kp2, matches):
     return move_rect
 
 
-def preprocessing(img1, img2):
-    """
-    利用前两帧初步确定运动物体大致范围
 
-    参数:
-    img1: 第一帧
-    img2: 第二帧
+if __name__ == "__main__":
+    video_path = "../video/fluid/newpeople.mp4"
 
-    返回:
-    move_rect: 运动物体分为列表
-    """
-    # 使用SURF算法处理第一张图片，获取关键点和描述符
-    kp1, des1 = SURF(img1)
-    # 使用SURF算法处理第二张图片，获取关键点和描述符
-    kp2, des2 = SURF(img2)
-    # 通过FLANN匹配算法，根据关键点和描述符在两张图片间找到匹配点
-    matches = ByFlann(img1, img2, kp1, kp2, des1, des2, "SIFT")
-    move_rect = RANSAC(img1, img2, kp1, kp2, matches)
-    return move_rect
+    cap = cv2.VideoCapture(video_path)
+    ret, img2 = cap.read()
 
+    while True:
+        ret, img1 = cap.read()
+        if not ret:
+            break
 
+            # 使用SURF算法处理第一张图片，获取关键点和描述符
+        kp1, des1 = SURF(img1)
+        # 使用SURF算法处理第二张图片，获取关键点和描述符
+        kp2, des2 = SURF(img2)
+        # 通过FLANN匹配算法，根据关键点和描述符在两张图片间找到匹配点
+        matches = ByFlann(img1, img2, kp1, kp2, des1, des2, "SIFT")
+        rect = RANSAC(img1, img2, kp1, kp2, matches)
 
+        for rec in rect:
+            cv2.rectangle(img2, (rec[0], rec[1]), (rec[2], rec[3]), (0, 255, 0), 2)
+            cv2.imshow("img2", img2)
+            cv2.waitKey(1)
 
-if __name__ == '__main__':
-    video_dir = "video/move/drones"
-    frame_names = [
-        p for p in os.listdir(video_dir)
-        if os.path.splitext(p)[-1] in [".jpg", ".jpeg", ".JPG", ".JPEG"]
-    ]
-    frame_names.sort(key=lambda p: int(os.path.splitext(p)[0]))
-    img1 = cv2.imread(os.path.join(video_dir, frame_names[9]))
-    img2 = cv2.imread(os.path.join(video_dir, frame_names[10]))
-    move_rect = preprocessing(img1, img2)
-    print(move_rect)
+        img2 = img1
 
+    cap.release()
