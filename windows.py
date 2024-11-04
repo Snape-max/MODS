@@ -117,6 +117,7 @@ class MoveWindow(QtWidgets.QMainWindow):
         grid.addWidget(self.start_button, 5, 0)
         grid.addWidget(self.stop_button, 6, 0)
         grid.addWidget(self.frame_label, 0, 1, 10, 10)
+        self.frame_label.setText("Wait operation")
 
     def start(self):
         if self.task_finish:

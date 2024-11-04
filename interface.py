@@ -8,6 +8,7 @@ from typing import Callable
 from numpy import ndarray
 from hansome_static_detect import *
 from preprocessing import preprocessing
+import time
 
 class Sam2Interface:
     def __init__(self, show_callback:Callable[[ndarray],None], log_callback:Callable[[str],None], video_dir:str):
@@ -65,10 +66,18 @@ class Sam2Interface:
         image = np.array(Image.open(os.path.join(self.video_dir, frame_names[ann_frame_idx])).convert("RGB"))
         self.show_callback(image)
 
+        s_time = None
         for out_frame_idx, out_obj_ids, out_mask_logits in self.predictor.propagate_in_video(inference_state):
             image = np.array(Image.open(os.path.join(self.video_dir, frame_names[out_frame_idx])))
             mask = (out_mask_logits[0] > 0.0).cpu().numpy()
             mask_image = add_mask(image, mask[0], (30, 144, 255))
+            e_time = time.time()
+            if s_time is not None:
+                fps = round(1 / (e_time - s_time), 2)
+                # 绘制在画面上
+                cv2.putText(mask_image, str(fps), (10, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 0, 0))
+            s_time = time.time()
             self.show_callback(mask_image)
 
         self.log_callback("Propagate Finish")

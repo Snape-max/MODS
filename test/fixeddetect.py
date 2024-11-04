@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-video_path = "../video/target_center.mp4"
+video_path = "../video/fixed/target_center.mp4"
 
 background_path = "../video/background.mp4"
 

@@ -98,49 +98,63 @@ def fluidbackground_detect(show_callback:Callable[[ndarray],None],
     返回:
         None
     """
-    camera = cv2.VideoCapture(video_path)
-    # 获取视频的宽度和高度
-    frame_width = int(camera.get(3))
-    frame_height = int(camera.get(4))
+    cap = cv2.VideoCapture(video_path)  # 替换为你的录像文件路径
 
-    # 初始化当前帧的前帧
-    lastFrame = None
+    # 创建背景减除对象
+    backSub = cv2.createBackgroundSubtractorMOG2(240, 16, True)
 
-    # kernel of erode and dilate
-    kernel_ero = np.ones((3, 3), np.uint8)
-    kernel_dil = np.ones((10, 10), np.uint8)
-    while camera.isOpened():
-        ret, frame = camera.read()
+    while True:
+        # 逐帧捕捉
+        ret, frame = cap.read()
         if not ret:
             break
 
-        if lastFrame is None:
-            lastFrame = frame
-            continue
+        # 应用背景减除
+        fg_mask = backSub.apply(frame)
+        fg_mask = cv2.threshold(fg_mask, 128, 255, cv2.THRESH_BINARY)[1]
+        # 进行形态学操作以去除噪声
+        kernel_ero = np.ones((3, 3), np.uint8)
+        fg_mask = cv2.erode(fg_mask, kernel_ero, iterations=2)
 
-        frameDelta = cv2.absdiff(lastFrame, frame)
-        lastFrame = frame.copy()
-        gray = cv2.cvtColor(frameDelta, cv2.COLOR_BGR2GRAY)
+        kernel_dil = np.ones((3, 3), np.uint8)
+        fg_mask = cv2.dilate(fg_mask, kernel_dil, iterations=3)
 
-        thresh2 = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY)[1]  # 另一个阈值
+        fg_mask = cv2.erode(fg_mask, kernel_ero, iterations=1)
+        fg_mask = cv2.dilate(fg_mask, kernel_dil, iterations=2)
+        # fg_mask = cv2.morphologyEx(fg_mask, cv2.MORPH_CLOSE, kernel)
+        frame_detect = frame.copy()
 
-        thresh2 = cv2.erode(thresh2, kernel_ero, iterations=1)
-        thresh2 = cv2.dilate(thresh2, kernel_dil, iterations=2)
+        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(fg_mask, connectivity=8)
+        threshold_distance = 70
+        for i in range(1, num_labels):
+            for j in range(i + 1, num_labels):
+                # 计算两个组件中心点之间的距离
+                distance = np.linalg.norm(centroids[i] - centroids[j])
+                if distance < threshold_distance:
+                    # 合并组件
+                    x1, y1 = centroids[i]
+                    x2, y2 = centroids[j]
 
-        cnts2, hierarchy2 = cv2.findContours(thresh2.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    x1, y1 = int(x1), int(y1)
+                    x2, y2 = int(x2), int(y2)
 
-        frame_detect2 = frame.copy()
+                    if x1 > x2:
+                        x1, x2 = x2, x1
+                    if y1 > y2:
+                        y1, y2 = y2, y1
 
-        # for c in cnts2:
-        #     if cv2.contourArea(c) < 300:
-        #         continue
-        #     (x, y, w, h) = cv2.boundingRect(c)
-        #     cv2.rectangle(frame_detect2, (x, y), (x + w, y + h), (0, 0, 255), 2)  # 红色检测框
+                    cv2.rectangle(fg_mask, (x1, y1), (x2, y2), 255, -1)
 
-        if cnts2:
-            all_contours = np.vstack(cnts2)  # 将所有轮廓合并
-            x, y, w, h = cv2.boundingRect(all_contours)  # 计算外接矩形
-            cv2.rectangle(frame_detect2, (x, y), (x + w, y + h), (0, 0, 255), 2)  # 红色检测框
+        # 查找轮廓
+        contours, _ = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        show_callback(frame_detect2[:, :, ::-1])
+        for contour in contours:
+            cv2.drawContours(frame_detect, [contour], -1, (0, 255, 0), 2)
+
+        for contour in contours:
+            if cv2.contourArea(contour) > 200:  # 过滤小轮廓
+                (x, y, w, h) = cv2.boundingRect(contour)
+
+                cv2.rectangle(frame_detect, (x, y), (x + w, y + h), (0, 0, 255), 2)  # 绘制边界框
+        show_callback(frame_detect[:, :, ::-1])
     log_callback("processed")
