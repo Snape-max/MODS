@@ -33,7 +33,8 @@
 
 1. Install the requirements using `pip install -r requirements.txt`, recommend to use `conda`
 2. Install `sam2` following [this](https://github.com/facebookresearch/segment-anything)
-3. Run `python windows.py`
+3. Put your video in the directory for different tasks, specifically the move task video should be segmented to frames
+4. Run `python windows.py`
 
 ## Interface display
 
