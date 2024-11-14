@@ -38,4 +38,4 @@
 
 ## Interface display
 
-<img src="./asset/gui.png" width="800" alt="GUI">
+<img src="./asset/testsam2.gif" width="800" alt="GUI">
